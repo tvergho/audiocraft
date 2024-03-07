@@ -1,0 +1,10 @@
+# @package __global__
+
+datasource:
+  max_sample_rate: 48000
+  max_channels: 2
+
+  train: egs/maestro
+  valid: egs/maestro
+  evaluate: egs/maestro
+  generate: egs/maestro
