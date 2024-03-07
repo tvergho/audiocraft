@@ -1,0 +1,10 @@
+# @package __global__
+
+datasource:
+  max_sample_rate: 48000
+  max_channels: 2
+
+  train: egs/iranian
+  valid: egs/iranian
+  evaluate: egs/iranian
+  generate: egs/iranian
