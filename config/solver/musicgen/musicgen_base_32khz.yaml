@@ -8,7 +8,7 @@ defaults:
   - /model: lm/musicgen_lm
   - override /conditioner: text2music
   - override /model/lm/model_scale: small
-  - override /dset: audio/maestro
+  - override /dset: audio/slakh
   - _self_
 
 autocast: true

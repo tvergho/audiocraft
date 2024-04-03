@@ -173,7 +173,7 @@ def find_audio_files(path: tp.Union[Path, str],
         for root, folders, files in os.walk(path, followlinks=True):
             for file in files:
                 full_path = Path(root) / file
-                if full_path.suffix.lower() in exts:
+                if full_path.suffix.lower() in exts and "mix.flac" not in full_path.name:
                     audio_files.append(full_path)
                     if pool is not None:
                         futures.append(pool.submit(_get_audio_meta, str(audio_files[-1]), minimal))

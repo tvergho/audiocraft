@@ -1,9 +1,9 @@
 default:
-  dora_dir: /home/tyler/f0042zm/audiocraft_runs
+  dora_dir: /dartfs-hpc/scratch/f0042zm/audiocraft_runs
   partitions:
     global: debug
     team: debug
-  reference_dir: /home/tyler/f0042zm
+  reference_dir: /dartfs-hpc/scratch/f0042zm
 darwin:  # if we detect we are on a Mac, then most likely we are doing unit testing etc.
   dora_dir: /tmp/audiocraft_${oc.env:USER}
   partitions:

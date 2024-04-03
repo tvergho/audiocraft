@@ -14,6 +14,7 @@ import random
 import typing as tp
 
 import torch
+import yaml
 
 from .info_audio_dataset import (
     InfoAudioDataset,
@@ -221,17 +222,34 @@ class MusicDataset(InfoAudioDataset):
         wav, info = super().__getitem__(index)
         info_data = info.to_dict()
         music_info_path = Path(info.meta.path).with_suffix('.json')
+        # metadata is ../metadata.yaml
+        metadata_path = Path(info.meta.path).parent.parent / 'metadata.yaml'
 
-        if Path(music_info_path).exists():
-            with open(music_info_path, 'r') as json_file:
-                music_data = json.load(json_file)
-                music_data.update(info_data)
-                music_info = MusicInfo.from_dict(music_data, fields_required=self.info_fields_required)
-            if self.paraphraser is not None:
-                music_info.description = self.paraphraser.sample(music_info.meta.path, music_info.description)
-            if self.merge_text_p:
-                music_info = augment_music_info_description(
-                    music_info, self.merge_text_p, self.drop_desc_p, self.drop_other_p)
+        # Load yaml metadata
+
+        # if Path(music_info_path).exists():
+        #     with open(music_info_path, 'r') as json_file:
+        #         music_data = json.load(json_file)
+        #         music_data.update(info_data)
+        #         music_info = MusicInfo.from_dict(music_data, fields_required=self.info_fields_required)
+        #     if self.paraphraser is not None:
+        #         music_info.description = self.paraphraser.sample(music_info.meta.path, music_info.description)
+        #     if self.merge_text_p:
+        #         music_info = augment_music_info_description(
+        #             music_info, self.merge_text_p, self.drop_desc_p, self.drop_other_p)
+        # else:
+
+        # Load yaml metadata
+        with open(metadata_path, 'r') as yaml_file:
+            metadata = yaml.safe_load(yaml_file)
+
+        stem_name = Path(info.meta.path).stem
+        stem_metadata = metadata['stems'].get(stem_name)
+
+        if stem_metadata is not None:
+            music_info = MusicInfo.from_dict(info_data, fields_required=False)
+            instrument_name = stem_metadata.get('midi_program_name')
+            music_info.description = f"{instrument_name} music"
         else:
             music_info = MusicInfo.from_dict(info_data, fields_required=False)
 
