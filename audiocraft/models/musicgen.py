@@ -186,8 +186,13 @@ class MusicGen(BaseGenModel):
                     torch.tensor([0], device=self.device),
                     sample_rate=[self.sample_rate],
                     path=[None])
+                attr.wav['stem_wav'] = WavCondition(
+                    torch.zeros((1, 1, 1), device=self.device),
+                    torch.tensor([0], device=self.device),
+                    sample_rate=[self.sample_rate],
+                    path=[None])
         else:
-            if 'self_wav' not in self.lm.condition_provider.conditioners:
+            if 'self_wav' not in self.lm.condition_provider.conditioners and 'stem_wav' not in self.lm.condition_provider.conditioners:
                 raise RuntimeError("This model doesn't support melody conditioning. "
                                    "Use the `melody` model.")
             assert len(melody_wavs) == len(descriptions), \
@@ -200,8 +205,19 @@ class MusicGen(BaseGenModel):
                         torch.tensor([0], device=self.device),
                         sample_rate=[self.sample_rate],
                         path=[None])
+                    attr.wav['stem_wav'] = WavCondition(
+                        torch.zeros((1, 1, 1), device=self.device),
+                        torch.tensor([0], device=self.device),
+                        sample_rate=[self.sample_rate],
+                        path=[None])
                 else:
                     attr.wav['self_wav'] = WavCondition(
+                        melody[None].to(device=self.device),
+                        torch.tensor([melody.shape[-1]], device=self.device),
+                        sample_rate=[self.sample_rate],
+                        path=[None],
+                    )
+                    attr.wav['stem_wav'] = WavCondition(
                         melody[None].to(device=self.device),
                         torch.tensor([melody.shape[-1]], device=self.device),
                         sample_rate=[self.sample_rate],

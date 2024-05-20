@@ -53,6 +53,7 @@ class MusicInfo(AudioInfo):
     self_wav: tp.Optional[WavCondition] = None
     # dict mapping attributes names to tuple of wav, text and metadata
     joint_embed: tp.Dict[str, JointEmbedCondition] = field(default_factory=dict)
+    stem_wav: tp.Optional[WavCondition] = None
 
     @property
     def has_music_meta(self) -> bool:
@@ -67,6 +68,8 @@ class MusicInfo(AudioInfo):
             elif key == 'joint_embed':
                 for embed_attribute, embed_cond in value.items():
                     out.joint_embed[embed_attribute] = embed_cond
+            elif key == 'stem_wav':
+                out.wav['stem_wav'] = value
             else:
                 if isinstance(value, list):
                     value = ' '.join(value)
@@ -254,6 +257,9 @@ class MusicDataset(InfoAudioDataset):
             music_info = MusicInfo.from_dict(info_data, fields_required=False)
 
         music_info.self_wav = WavCondition(
+            wav=wav[None], length=torch.tensor([info.n_frames]),
+            sample_rate=[info.sample_rate], path=[info.meta.path], seek_time=[info.seek_time])
+        music_info.stem_wav = WavCondition(
             wav=wav[None], length=torch.tensor([info.n_frames]),
             sample_rate=[info.sample_rate], path=[info.meta.path], seek_time=[info.seek_time])
 

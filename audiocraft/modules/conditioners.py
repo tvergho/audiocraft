@@ -493,13 +493,17 @@ class WaveformConditioner(BaseConditioner):
             ConditionType: a dense vector representing the conditioning along with its mask
         """
         wav, lengths, *_ = x
+        # print(f"wav shape: {wav.shape}")
         with torch.no_grad():
             embeds = self._get_wav_embedding(x)
         embeds = embeds.to(self.output_proj.weight)
         embeds = self.output_proj(embeds)
+        # print(f"embeds shape: {embeds.shape}")
 
         if lengths is not None and self._use_masking:
+            # print(lengths)
             lengths = lengths / self._downsampling_factor()
+            # print(lengths.shape, self._downsampling_factor())
             mask = length_to_mask(lengths, max_len=embeds.shape[1]).int()  # type: ignore
         else:
             mask = torch.ones_like(embeds[..., 0])
@@ -697,6 +701,41 @@ class ChromaStemConditioner(WaveformConditioner):
             self.cache.populate_embed_cache(paths, x)
         return x
 
+class StemConditioner(WaveformConditioner):
+    """Conditioner based on stems.
+    The StemConditioner uses Encodec to encode the waveform into a dense vector.
+
+    Args:
+        output_dim (int): Output dimension for the conditioner.
+        duration (int): duration used during training. This is later used for correct padding
+            in case we are using chroma as prefix.
+        device (tp.Union[torch.device, str], optional): Device for the conditioner.
+        **kwargs: Additional parameters for the chroma extractor.
+    """
+    def __init__(self, output_dim: int, duration: float, device: tp.Union[torch.device, str] = 'cpu', **kwargs):
+        from ..models.encodec import CompressionModel
+
+        super().__init__(dim=4, output_dim=output_dim, device=device)
+        self.duration = duration
+        self.compression_model = CompressionModel.get_pretrained("facebook/encodec_32khz", device=device)
+
+    def _downsampling_factor(self) -> int:
+        return 640
+
+    @torch.no_grad()
+    def _get_wav_embedding(self, x: WavCondition) -> torch.Tensor:
+        """Get the wav embedding from the WavCondition.
+        The conditioner will either extract the embedding on-the-fly computing it from the condition wav directly
+        or will rely on the embedding cache to load the pre-computed embedding if relevant.
+        """
+        wav = x.wav
+        chroma, _ = self.compression_model.encode(wav.half())
+        B, K, T = chroma.shape
+
+        # rearrange the chroma to be [B, T, K]
+        chroma = chroma.permute(0, 2, 1)
+
+        return chroma
 
 class JointEmbeddingConditioner(BaseConditioner):
     """Joint embedding conditioning supporting both audio or text conditioning.
@@ -1250,6 +1289,7 @@ class ConditioningProvider(nn.Module):
 
         for sample in samples:
             for attribute in self.wav_conditions:
+                print(self.wav_conditions, sample.wav.keys(), attribute)
                 wav, length, sample_rate, path, seek_time = sample.wav[attribute]
                 assert wav.dim() == 3, f"Got wav with dim={wav.dim()}, but expected 3 [1, C, T]"
                 assert wav.size(0) == 1, f"Got wav [B, C, T] with shape={wav.shape}, but expected B == 1"

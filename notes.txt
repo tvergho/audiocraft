@@ -1,0 +1,2 @@
+AUDIOCRAFT_TEAM=discovery dora run solver=musicgen/musicgen_base_32khz dset=audio/slakh-discovery
+dora run solver=musicgen/musicgen_base_32khz (if mounting to /home/tyler/f0042zm)

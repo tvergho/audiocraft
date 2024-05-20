@@ -34,6 +34,7 @@ from ..modules.conditioners import (
     ConditioningProvider,
     LUTConditioner,
     T5Conditioner,
+    StemConditioner,
 )
 from .unet import DiffusionUnet
 from .. import quantization as qt
@@ -142,6 +143,13 @@ def get_conditioner_provider(output_dim: int, cfg: omegaconf.DictConfig) -> Cond
             conditioners[str(cond)] = LUTConditioner(output_dim=output_dim, **model_args)
         elif model_type == 'chroma_stem':
             conditioners[str(cond)] = ChromaStemConditioner(
+                output_dim=output_dim,
+                duration=duration,
+                device=device,
+                **model_args
+            )
+        elif model_type == 'stem':
+            conditioners[str(cond)] = StemConditioner(
                 output_dim=output_dim,
                 duration=duration,
                 device=device,

@@ -140,6 +140,21 @@ class MusicGenSolver(base.StandardSolver):
             assert not self.cfg.autocast, "Cannot use autocast with fsdp"
             self.model = self.wrap_with_fsdp(self.model)
         self.register_ema('model')
+
+        # Freeze all the parameters of the model
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # # Unfreeze the conditioning provider
+        # for k, conditioner in self.model.condition_provider.conditioners.items():
+        #     if hasattr(conditioner, 'output_proj') and k == "stem_wav":
+        #         # Ensuring the output_proj attribute exists and has parameters
+        #         for param in conditioner.output_proj.parameters():
+        #             param.requires_grad = True
+        #             print(f"Unfreezing {k} - {param.shape}")
+        #     else:
+        #         print(f"No output_proj attribute for {k}")
+
         # initialize optimization
         self.optimizer = builders.get_optimizer(builders.get_optim_parameter_groups(self.model), self.cfg.optim)
         self.lr_scheduler = builders.get_lr_scheduler(self.optimizer, self.cfg.schedule, self.total_updates)
@@ -292,6 +307,12 @@ class MusicGenSolver(base.StandardSolver):
                         sample_rate=[info.sample_rate],
                         path=[info.meta.path],
                         seek_time=[info.seek_time])
+                    info.stem_wav = WavCondition(
+                        torch.full([1, info.channels, info.total_frames], float('NaN')),
+                        length=torch.tensor([info.n_frames]),
+                        sample_rate=[info.sample_rate],
+                        path=[info.meta.path],
+                        seek_time=[info.seek_time])
                     dataset = get_dataset_from_loader(self.dataloaders['original_train'])
                     assert isinstance(dataset, MusicDataset), type(dataset)
                     if dataset.paraphraser is not None and info.description is not None:
@@ -360,6 +381,11 @@ class MusicGenSolver(base.StandardSolver):
 
         if check_synchronization_points:
             torch.cuda.set_sync_debug_mode('warn')
+
+        # print("Trainable parameters:")
+        # for name, param in self.model.named_parameters():
+        #     if param.requires_grad:
+        #         print(name)
 
         with self.autocast:
             model_output = self.model.compute_predictions(audio_tokens, [], condition_tensors)  # type: ignore

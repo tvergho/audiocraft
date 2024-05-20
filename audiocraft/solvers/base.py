@@ -426,7 +426,7 @@ class StandardSolver(ABC, flashy.BaseSolver):
                 for name in self.best_state.states.keys():
                     state_source = self._get_state_source(name)
                     self.best_state.update(name, state_source)
-
+        print(state.keys())
         return state
 
     def restore(self, load_best: bool = False, replay_metrics: bool = False,

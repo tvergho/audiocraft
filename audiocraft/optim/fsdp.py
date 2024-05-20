@@ -122,17 +122,16 @@ def purge_fsdp(model: FSDP):
     allow setting the best state or switching to the EMA.
     """
     from torch.distributed.fsdp._runtime_utils import _reshard  # type: ignore
+    return
     for module in FSDP.fsdp_modules(model):
-        handles = module._handles
-        if not handles:
+        handle = module._handle
+        if not handle:
             continue
-        handle = handles[0]
         unsharded_flat_param = handle._get_padded_unsharded_flat_param()
         storage_size: int = unsharded_flat_param._typed_storage()._size()  # type: ignore
         if storage_size == 0:
             continue
-        true_list = [True for h in handles]
-        _reshard(module, handles, true_list)
+        _reshard(module, handle, True)
 
 
 class _FSDPFixStateDict(FSDP):
@@ -152,7 +151,7 @@ class _FSDPFixStateDict(FSDP):
 
     def load_state_dict(self, state: tp.Dict[str, tp.Any]):  # type: ignore
         if self._state_dict_type is StateDictType.FULL_STATE_DICT:
-            super().load_state_dict(state)
+            super().load_state_dict(state, strict=False)
             purge_fsdp(self)
             return
         # Fix FSDP load state dict in all situation.

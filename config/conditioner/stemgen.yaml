@@ -9,28 +9,21 @@ attribute_dropout:
     active_on_eval: false
   text: {}
   wav:
-    self_wav: 0.5
+    stem_wav: 0.5
 
 fuser:
   cross_attention_pos_emb: false
   cross_attention_pos_emb_scale: 1
   sum: []
-  prepend: []
-  cross: [self_wav, description]
+  prepend: [stem_wav, description]
+  cross: []
   input_interpolate: []
 
 conditioners:
-  self_wav:
-    model: chroma_stem
-    chroma_stem:
+  stem_wav:
+    model: stem
+    stem:
       sample_rate: ${sample_rate}
-      n_chroma: 12
-      radix2_exp: 14
-      argmax: true
-      match_len_on_eval: false
-      eval_wavs: null
-      n_eval_wavs: 100
-      cache_path: null
   description:
     model: t5
     t5:

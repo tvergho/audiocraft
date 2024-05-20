@@ -7,19 +7,29 @@ defaults:
   - musicgen/default
   - /model: lm/musicgen_lm
   - override /conditioner: text2music
-  - override /model/lm/model_scale: small
+  - override /model/lm/model_scale: medium
   - override /dset: audio/slakh
   - _self_
 
-autocast: true
+autocast: false
 autocast_dtype: float16
+
+
+fsdp:
+  use: true  # should we use FSDP.
+  param_dtype: float16  # equivalent to autocast_dtype for FSDP.
+  reduce_dtype: float16  # gradient averaging dtype, float32 will give max stability.
+  buffer_dtype: float16  # dtype used for buffers, we don't have much buffers, so let's leave it.
+  sharding_strategy: no_shard  # can be shard_grad_op or full_shard.
+                                    # full_shard will use less memory but slower ??
+  per_block: true  # If True, uses nested FSDP.
 
 # EnCodec large trained on mono-channel music audio sampled at 32khz
 # with a total stride of 640 leading to 50 frames/s.
 # rvq.n_q=4, rvq.bins=2048, no quantization dropout
 # (transformer_lm card and n_q must be compatible)
 compression_model_checkpoint: //pretrained/facebook/encodec_32khz
-continue_from: //pretrained/facebook/musicgen-small
+# continue_from: //pretrained/facebook/musicgen-small
 
 channels: 1
 sample_rate: 32000
@@ -28,13 +38,13 @@ deadlock:
   use: true  # deadlock detection
 
 dataset:
-  batch_size: 1  # 32 GPUs
+  batch_size: 2  # 32 GPUs
   sample_on_weight: false  # Uniform sampling all the way
   sample_on_duration: false  # Uniform sampling all the way
   valid:
     num_samples: 10
   generate:
-    num_samples: 1
+    num_samples: 10
 
 generate:
   every: 1
@@ -43,8 +53,12 @@ generate:
     top_k: 250
     top_p: 0.0
 
+evaluate:
+  every: 1
+
 optim:
   epochs: 20
+  updates_per_epoch: 2000
   optimizer: dadam
   lr: 1
   ema:
